@@ -15,8 +15,8 @@ tokens.cpp: tokens.l
 bin/linec: parser.o tokens.o node.o main.o 
 	$(CC) -g $^ $(shell llvm-config --ldflags --system-libs --libs core) -o $@
 
-bin/example: bin/linec
-	$^ example/example.lc $@
+bin/example: bin/linec example/example.lc
+	bin/linec example/example.lc $@
 
 clean:
 	rm parser.hpp parser.cpp tokens.cpp *.o bin/*
