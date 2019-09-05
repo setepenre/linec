@@ -29,18 +29,64 @@ extern int yyparse();
 extern Block* program;
 
 std::string usage() {
-    return "usage: linec [input] [output]";
+    return 
+"usage: linec [options] source executable\n"
+"  linec compiles \e[1msource\e[0m file to \e[1mexecutable\e[0m file\n"
+"\n"
+"options:\n"
+"  -h, --help  display this message\n"
+"  --llvm      emits llvm IR to standard output";
+}
+
+std::vector<std::string> vectorize(int argc, char* argv[]) {
+    std::vector<std::string> args = {};
+    for(auto i = 1; i < argc; ++i) {
+        args.push_back(argv[i]);
+    }
+    return args;
+}
+
+std::tuple<bool, bool, std::string, std::string> parse(int argc, char* argv[]) {
+    auto contains = [argc, argv](std::string s) {
+        for(auto i = 1; i < argc; ++i) {
+            if(s == std::string(argv[i])) {
+                return true;
+            }
+        }
+        return false;
+    };
+    auto extract = [](std::string s, const std::vector<std::string>& a) -> std::tuple<bool, std::vector<std::string>> {
+        auto copy = a;
+        for(auto i = 0; i < copy.size(); ++i) {
+            if(s == copy.at(i)) {
+                copy.erase(copy.begin() + i);
+                return { true, copy };
+            }
+        }
+        return { false, a };
+    };
+    auto [help, tmp] = contains("-h") ? 
+        extract("-h", vectorize(argc, argv)) : 
+        contains("--help") ? 
+          extract("--help", vectorize(argc, argv)) : 
+          std::tuple<bool, std::vector<std::string>>({ false, vectorize(argc, argv) });
+
+    auto [ir, args] = extract("--llvm", tmp);
+    return { help, ir, args.at(0), args.at(1) };
 }
 
 int main(int argc, char* argv[]) {
     
-    if(argc != 3) {
+    if(argc < 3 || argc > 5) {
         std::cerr << usage() << std::endl;
         return 1;
     }
-
-    auto input = std::string(argv[1]);
-    auto output = std::string(argv[2]);
+    
+    auto [help, ir, input, output] = parse(argc, argv);
+    if(help) {
+        std::cerr << usage() << std::endl;
+        return 1;
+    }
 
     FILE* fp = fopen(input.c_str(), "r");
     if(!fp) {
@@ -57,6 +103,9 @@ int main(int argc, char* argv[]) {
     auto main = build_main(module, program->codegen(module));
     if(!main) {
         return 1;
+    }
+    if(ir) {
+        module->print(llvm::outs(), nullptr);
     }
 
     llvm::InitializeAllTargetInfos();
