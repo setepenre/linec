@@ -11,16 +11,18 @@
 
 #include "node.hpp"
 
-llvm::Value* Number::codegen(std::unique_ptr<llvm::Module> const &module) {
+static std::map<std::string, llvm::Value*> Defined;
+
+llvm::Value* Number::codegen(std::unique_ptr<llvm::Module> const& module) {
     return llvm::ConstantFP::get(module->getContext(), llvm::APFloat(value));
 }
 
-llvm::Value* String::codegen(std::unique_ptr<llvm::Module> const &module) {
+llvm::Value* String::codegen(std::unique_ptr<llvm::Module> const& module) {
     llvm::IRBuilder<> builder(module->getContext());
     return builder.CreateGlobalStringPtr(value);
 }
 
-llvm::Value* Plus::codegen(std::unique_ptr<llvm::Module> const &module) {
+llvm::Value* Plus::codegen(std::unique_ptr<llvm::Module> const& module) {
     auto l = left->codegen(module);
     auto r = right->codegen(module);
     if(!l || !r) {
@@ -31,7 +33,39 @@ llvm::Value* Plus::codegen(std::unique_ptr<llvm::Module> const &module) {
     return builder.CreateFAdd(l, r, "addtmp");
 }
 
-llvm::Function* get_printf(std::unique_ptr<llvm::Module> const &module) {
+llvm::Value* Assignment::codegen(std::unique_ptr<llvm::Module> const& module) {
+    auto count = Defined.count(name);
+    if(count) {
+        std::cerr << "\e[1mline " << lineno << ":\e[0m identifier \e[1m" << name << "\e[0m is already defined" << std::endl;
+        return nullptr;
+    }
+
+    Defined[name] = expr->codegen(module);
+    return Defined[name];
+}
+
+llvm::Value* Ident::codegen(std::unique_ptr<llvm::Module> const& module) {
+    auto count = Defined.count(name);
+    if(!count) {
+        std::cerr << "\e[1mline " << lineno << ":\e[0m identifier \e[1m" << name << "\e[0m is unassigned" << std::endl;
+        return nullptr;
+    }
+    return Defined[name];
+}
+
+llvm::Value* Block::codegen(std::unique_ptr<llvm::Module> const& module) {
+    auto last = std::move(exprs.back());
+    exprs.pop_back();
+    for(auto const& expr : exprs) {
+        auto f = expr->codegen(module);
+        if(!f) {
+            return nullptr;
+        }
+    }
+    return last->codegen(module);
+}
+
+llvm::Function* get_printf(std::unique_ptr<llvm::Module> const& module) {
     llvm::Function* f = module->getFunction("printf");
     if (!f) {
         std::vector<llvm::Type*> types = {
@@ -48,7 +82,7 @@ llvm::Function* get_printf(std::unique_ptr<llvm::Module> const &module) {
     return f;
 }
 
-llvm::Function* build_main(std::unique_ptr<llvm::Module> const &module, llvm::Value* display) {
+llvm::Function* build_main(std::unique_ptr<llvm::Module> const& module, llvm::Value* display) {
     llvm::FunctionType* ft = llvm::FunctionType::get(llvm::Type::getInt64Ty(module->getContext()), false);
     llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", module.get());
 
@@ -56,19 +90,16 @@ llvm::Function* build_main(std::unique_ptr<llvm::Module> const &module, llvm::Va
     llvm::IRBuilder<> builder(module->getContext());
     builder.SetInsertPoint(bb);
 
-    if(display) {
-        auto printf = get_printf(module);
-        llvm::Value* fmt = builder.CreateGlobalStringPtr("%f", "fmt", 0);
-        std::vector<llvm::Value*> args = { fmt, display };
-        builder.CreateCall(printf, args, "printfCall");
+    if(!display) {
+        return nullptr;
     }
+    auto printf = get_printf(module);
+    llvm::Value* fmt = builder.CreateGlobalStringPtr("%f", "fmt", 0);
+    std::vector<llvm::Value*> args = { fmt, display };
+    builder.CreateCall(printf, args, "printfCall");
 
     auto zero = llvm::Constant::getNullValue(llvm::Type::getInt64Ty(module->getContext()));
     builder.CreateRet(zero);
     llvm::verifyFunction(*f);
     return f;
-}
-
-llvm::Value* Line::codegen(std::unique_ptr<llvm::Module> const &module) {
-    return expr->codegen(module);
 }

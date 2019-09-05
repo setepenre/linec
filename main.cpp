@@ -2,6 +2,8 @@
 #include <iostream>
 #include <memory>
 #include <sstream>
+#include <string>
+#include <tuple>
 #include <vector>
 
 #include "llvm/IR/Attributes.h"
@@ -24,7 +26,7 @@ static std::unique_ptr<llvm::Module> module;
 
 extern FILE* yyin;
 extern int yyparse();
-extern Line* line;
+extern Block* program;
 
 std::string usage() {
     return "usage: linec [input] [output]";
@@ -52,9 +54,8 @@ int main(int argc, char* argv[]) {
     }
 
     module = llvm::make_unique<llvm::Module>(input, context);
-    auto main = build_main(module, line->codegen(module));
+    auto main = build_main(module, program->codegen(module));
     if(!main) {
-        std::cerr << "failed to compile " << input << " to " << output << std::endl;
         return 1;
     }
 
