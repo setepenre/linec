@@ -8,40 +8,42 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Value.h"
 
+#include "environment.hpp"
+
 struct Expr {
     int lineno;
 
     Expr(int lineno): lineno(lineno) {}
     virtual ~Expr() = default;
-    virtual llvm::Value* codegen(std::unique_ptr<llvm::Module> const& module) = 0;
+    virtual llvm::Value* codegen(const Environment& env) = 0;
 };
 
 struct Number: Expr {
     double value;
 
     Number(int lineno, double value): Expr(lineno), value(value) {}
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
 struct String: Expr {
     std::string value;
 
     String(int lineno, const std::string &value) : Expr(lineno), value(value) {}
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Ident: Expr {
     std::string name;
 
     Ident(int lineno, const std::string &name) : Expr(lineno), name(name) {}
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Plus: Expr {
     std::unique_ptr<Expr> left, right;
 
     Plus(int lineno, Expr* left, Expr* right) : Expr(lineno), left(std::move(left)), right(std::move(right)) {}
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Assignment: Expr {
@@ -49,7 +51,7 @@ struct Assignment: Expr {
     std::unique_ptr<Expr> expr;
 
     Assignment(int lineno, std::string name, Expr* expr) : Expr(lineno), name(name), expr(std::move(expr)) {}
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Block: Expr {
@@ -57,9 +59,9 @@ struct Block: Expr {
 
     Block(int lineno, Expr* head) : Expr(lineno) { exprs.push_back(std::unique_ptr<Expr>(std::move(head))); }
     void push_back(Expr* expr) { exprs.push_back(std::unique_ptr<Expr>(std::move(expr))); }
-    llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
+    llvm::Value* codegen(const Environment& env) override;
 };
 
-llvm::Function* get_printf(std::unique_ptr<llvm::Module> const &module);
-llvm::Function* build_main(std::unique_ptr<llvm::Module> const &module, llvm::Value* display);
+llvm::Function* get_printf(const Environment& env);
+llvm::Function* build_main(const Environment& env, Expr* display);
 #endif

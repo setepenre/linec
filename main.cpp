@@ -19,10 +19,8 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Target/TargetMachine.h"
 
+#include "environment.hpp"
 #include "node.hpp"
-
-static llvm::LLVMContext context;
-static std::unique_ptr<llvm::Module> module;
 
 extern FILE* yyin;
 extern int yyparse();
@@ -99,13 +97,19 @@ int main(int argc, char* argv[]) {
         return parse_code;
     }
 
-    module = llvm::make_unique<llvm::Module>(input, context);
-    auto main = build_main(module, program->codegen(module));
+    auto [lines, ok] = readlines(input);
+    if(!ok) {
+        std::cerr << "could not read lines from " << input << std::endl;
+        return 1;
+    }
+
+    auto env = Environment(input, lines);
+    auto main = build_main(env, std::move(entry));
     if(!main) {
         return 1;
     }
     if(ir) {
-        module->print(llvm::outs(), nullptr);
+        env.module->print(llvm::outs(), nullptr);
     }
 
     llvm::InitializeAllTargetInfos();
@@ -115,7 +119,7 @@ int main(int argc, char* argv[]) {
     llvm::InitializeAllAsmPrinters();
 
     auto target_triple = llvm::sys::getDefaultTargetTriple();
-    module->setTargetTriple(target_triple);
+    env.module->setTargetTriple(target_triple);
 
     std::string err;
     auto target = llvm::TargetRegistry::lookupTarget(target_triple, err);
@@ -132,7 +136,7 @@ int main(int argc, char* argv[]) {
     auto rm = llvm::Optional<llvm::Reloc::Model>(llvm::Reloc::Model::PIC_);
     auto target_machine = target->createTargetMachine(target_triple, cpu, features, opt, rm);
 
-    module->setDataLayout(target_machine->createDataLayout());
+    env.module->setDataLayout(target_machine->createDataLayout());
 
     auto obj = "output.o";
     std::error_code ec;
@@ -151,7 +155,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    pass.run(*module);
+    pass.run(*env.module);
     dest.flush();
 
     std::ostringstream oss;

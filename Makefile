@@ -12,7 +12,7 @@ tokens.cpp: tokens.l
 %.o: %.cpp
 	$(CC) -g -c $(CXXFLAGS) $^ -o $@
 
-bin/linec: parser.o tokens.o node.o main.o 
+bin/linec: parser.o tokens.o node.o environment.o main.o 
 	$(CC) -g $^ $(shell llvm-config --ldflags --system-libs --libs core) -o $@
 
 bin/example: bin/linec example/example.lc
