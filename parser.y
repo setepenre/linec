@@ -4,7 +4,7 @@
 
 #include "node.hpp" 
 
-Block* program;
+Block* entry;
 
 extern int yylex();
 extern int yylineno;
@@ -31,7 +31,7 @@ void yyerror(const char* s) { std::cerr << "ERROR: " << s << std::endl; }
 
 %%
 program: 
-    stmts { program = $1; }
+    stmts { entry = $1; }
     ;
 
 stmts: 

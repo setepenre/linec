@@ -26,7 +26,7 @@ static std::unique_ptr<llvm::Module> module;
 
 extern FILE* yyin;
 extern int yyparse();
-extern Block* program;
+extern Block* entry;
 
 std::string usage() {
     return 
