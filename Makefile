@@ -3,23 +3,23 @@ CXXFLAGS=-I/usr/lib/llvm-8/include -std=c++17 -fno-exceptions -D_GNU_SOURCE -D__
 
 all: bin/linec bin/example
 
-parser.cpp: parser.y
+src/parser.cpp: src/parser.y
 	bison -d -o $@ $^
 
-tokens.cpp: tokens.l
+src/tokens.cpp: src/tokens.l
 	flex -o $@ $^ 
 
-%.o: %.cpp
+obj/%.o: src/%.cpp
 	$(CC) -g -c $(CXXFLAGS) $^ -o $@
 
-bin/linec: parser.o tokens.o node.o environment.o main.o 
+bin/linec: obj/parser.o obj/tokens.o obj/node.o obj/environment.o obj/main.o 
 	$(CC) -g $^ $(shell llvm-config --ldflags --system-libs --libs core) -o $@
 
 bin/example: bin/linec example/example.lc
 	bin/linec example/example.lc $@
 
 clean:
-	rm parser.hpp parser.cpp tokens.cpp *.o bin/*
+	rm src/parser.hpp src/parser.cpp src/tokens.cpp obj/*.o bin/*
 
 list-dependencies:
 	@flex --version
