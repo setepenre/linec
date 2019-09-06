@@ -17,7 +17,13 @@ Toy compiler made using flex, bison and llvm.
 ## usage
 
 ```bash
-    $ bin/linec [input] [output]
+    $ bin/linec -h
+    usage: linec [options] source executable
+      linec compiles source file to executable file
+
+    options:
+      -h, --help  display this message
+      --llvm      emits llvm IR to standard output
 ```
 
 ### example/
