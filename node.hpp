@@ -8,64 +8,54 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Value.h"
 
-class Expr {
-public:
+struct Expr {
+    int lineno;
+
+    Expr(int lineno): lineno(lineno) {}
     virtual ~Expr() = default;
-    virtual llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) = 0;
+    virtual llvm::Value* codegen(std::unique_ptr<llvm::Module> const& module) = 0;
 };
 
-class Number: public Expr {
-    int lineno;
+struct Number: Expr {
     double value;
 
-public:
-    Number(int lineno, double value): lineno(lineno), value(value) {}
+    Number(int lineno, double value): Expr(lineno), value(value) {}
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
 
-class String: public Expr {
-    int lineno;
+struct String: Expr {
     std::string value;
 
-public:
-    String(int lineno, const std::string &value) : lineno(lineno), value(value) {}
+    String(int lineno, const std::string &value) : Expr(lineno), value(value) {}
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
 
-class Ident: public Expr {
-    int lineno;
+struct Ident: Expr {
     std::string name;
 
-public:
-    Ident(int lineno, const std::string &name) : lineno(lineno), name(name) {}
+    Ident(int lineno, const std::string &name) : Expr(lineno), name(name) {}
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
 
-class Plus: public Expr {
-    int lineno;
+struct Plus: Expr {
     std::unique_ptr<Expr> left, right;
 
-public:
-    Plus(int lineno, Expr* left, Expr* right) : lineno(lineno), left(std::move(left)), right(std::move(right)) {}
+    Plus(int lineno, Expr* left, Expr* right) : Expr(lineno), left(std::move(left)), right(std::move(right)) {}
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
 
-class Assignment: public Expr {
-    int lineno;
+struct Assignment: Expr {
     std::string name;
     std::unique_ptr<Expr> expr;
 
-public:
-    Assignment(int lineno, std::string name, Expr* expr) : lineno(lineno), name(name), expr(std::move(expr)) {}
+    Assignment(int lineno, std::string name, Expr* expr) : Expr(lineno), name(name), expr(std::move(expr)) {}
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
 
-class Block: public Expr {
-    int lineno;
+struct Block: Expr {
     std::vector<std::unique_ptr<Expr>> exprs;
 
-public:
-    Block(int lineno, Expr* head) : lineno(lineno) { exprs.push_back(std::unique_ptr<Expr>(std::move(head))); }
+    Block(int lineno, Expr* head) : Expr(lineno) { exprs.push_back(std::unique_ptr<Expr>(std::move(head))); }
     void push_back(Expr* expr) { exprs.push_back(std::unique_ptr<Expr>(std::move(expr))); }
     llvm::Value* codegen(std::unique_ptr<llvm::Module> const &module) override;
 };
