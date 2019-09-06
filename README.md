@@ -24,8 +24,11 @@ Toy compiler made using flex, bison and llvm.
 
 ```bash
     $ cat example/example.lc
-    + 1 2
+    a = + 0 1
+    b = + a 1
+    c = + a b
+    + c 2
     $ bin/linec example/example.lc bin/example
     $ bin/example
-    3.000000
+    5.000000
 ```
