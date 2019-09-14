@@ -10,10 +10,17 @@
 
 #include "environment.hpp"
 
+enum Type {
+    UNDEFINED,
+    NUMBER,
+    STRING
+};
+
 struct Expr {
     int lineno;
+    Type type;
 
-    Expr(int lineno): lineno(lineno) {}
+    Expr(int lineno, Type type = UNDEFINED): lineno(lineno), type(type) {}
     virtual ~Expr() = default;
     virtual llvm::Value* codegen(const Environment& env) = 0;
 };
@@ -21,28 +28,21 @@ struct Expr {
 struct Number: Expr {
     double value;
 
-    Number(int lineno, double value): Expr(lineno), value(value) {}
+    Number(int lineno, double value): Expr(lineno, NUMBER), value(value) {}
     llvm::Value* codegen(const Environment& env) override;
 };
 
 struct String: Expr {
     std::string value;
 
-    String(int lineno, const std::string &value) : Expr(lineno), value(value) {}
+    String(int lineno, std::string value) : Expr(lineno, STRING), value(value) {}
     llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Ident: Expr {
     std::string name;
 
-    Ident(int lineno, const std::string &name) : Expr(lineno), name(name) {}
-    llvm::Value* codegen(const Environment& env) override;
-};
-
-struct Plus: Expr {
-    std::unique_ptr<Expr> left, right;
-
-    Plus(int lineno, Expr* left, Expr* right) : Expr(lineno), left(std::move(left)), right(std::move(right)) {}
+    Ident(int lineno, std::string name) : Expr(lineno), name(name) {}
     llvm::Value* codegen(const Environment& env) override;
 };
 
@@ -50,15 +50,20 @@ struct Assignment: Expr {
     std::string name;
     std::unique_ptr<Expr> expr;
 
-    Assignment(int lineno, std::string name, Expr* expr) : Expr(lineno), name(name), expr(std::move(expr)) {}
+    Assignment(int lineno, std::string name, Expr* expr) : Expr(lineno, expr->type), name(name), expr(std::move(expr)) {}
     llvm::Value* codegen(const Environment& env) override;
 };
 
 struct Block: Expr {
     std::vector<std::unique_ptr<Expr>> exprs;
 
-    Block(int lineno, Expr* head) : Expr(lineno) { exprs.push_back(std::unique_ptr<Expr>(std::move(head))); }
-    void push_back(Expr* expr) { exprs.push_back(std::unique_ptr<Expr>(std::move(expr))); }
+    Block(int lineno, Expr* head) : Expr(lineno, head->type) { 
+        exprs.push_back(std::unique_ptr<Expr>(std::move(head))); 
+    }
+    void push_back(Expr* expr) { 
+        exprs.push_back(std::unique_ptr<Expr>(std::move(expr))); 
+        type = expr->type;
+    }
     llvm::Value* codegen(const Environment& env) override;
 };
 

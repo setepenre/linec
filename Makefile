@@ -16,7 +16,7 @@ bin/linec: obj/parser.o obj/tokens.o obj/node.o obj/environment.o obj/main.o
 	$(CC) -g $^ $(shell llvm-config --ldflags --system-libs --libs core) -o $@
 
 bin/example: bin/linec example/example.lc
-	bin/linec example/example.lc $@
+	$^ $@
 
 clean:
 	rm src/parser.hpp src/parser.cpp src/tokens.cpp obj/*.o bin/*

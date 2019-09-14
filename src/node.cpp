@@ -5,31 +5,19 @@
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DerivedTypes.h"
-#include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
 
 #include "node.hpp"
 
-static std::map<std::string, llvm::Value*> Defined;
+static std::map<std::string, std::unique_ptr<Expr>> Defined;
 
 llvm::Value* Number::codegen(const Environment& env) {
     return llvm::ConstantFP::get(env.module->getContext(), llvm::APFloat(value));
 }
 
 llvm::Value* String::codegen(const Environment& env) {
-    llvm::IRBuilder<> builder(env.module->getContext());
-    return builder.CreateGlobalStringPtr(value);
-}
-
-llvm::Value* Plus::codegen(const Environment& env) {
-    auto l = left->codegen(env);
-    auto r = right->codegen(env);
-    if(!l || !r) {
-        return nullptr;
-    }
-
-    return env.builder->CreateFAdd(l, r, "addtmp");
+    return env.builder->CreateGlobalStringPtr(value);
 }
 
 llvm::Value* Assignment::codegen(const Environment& env) {
@@ -40,8 +28,8 @@ llvm::Value* Assignment::codegen(const Environment& env) {
         return nullptr;
     }
 
-    Defined[name] = expr->codegen(env);
-    return Defined[name];
+    Defined[name] = std::move(expr);
+    return Defined[name]->codegen(env);
 }
 
 llvm::Value* Ident::codegen(const Environment& env) {
@@ -51,19 +39,20 @@ llvm::Value* Ident::codegen(const Environment& env) {
         std::cerr << "  identifier \e[1m" << name << "\e[0m is unassigned" << std::endl;
         return nullptr;
     }
-    return Defined[name];
+    type = Defined[name]->type;
+    return Defined[name]->codegen(env);
 }
 
 llvm::Value* Block::codegen(const Environment& env) {
-    auto last = std::move(exprs.back());
-    exprs.pop_back();
+    llvm::Value* f;
     for(auto const& expr : exprs) {
-        auto f = expr->codegen(env);
+        f = expr->codegen(env);
         if(!f) {
             return nullptr;
         }
+        type = expr->type;
     }
-    return last->codegen(env);
+    return f;
 }
 
 llvm::Function* get_printf(const Environment& env) {
@@ -88,17 +77,17 @@ llvm::Function* build_main(const Environment& env, Expr* display) {
     llvm::Function* f = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, "main", env.module.get());
 
     llvm::BasicBlock* bb = llvm::BasicBlock::Create(env.module->getContext(), "entry", f);
-    llvm::IRBuilder<> builder(env.module->getContext());
-    builder.SetInsertPoint(bb);
+    env.builder->SetInsertPoint(bb);
 
     if(auto value = display->codegen(env)) {
         auto printf = get_printf(env);
-        llvm::Value* fmt = builder.CreateGlobalStringPtr("%f", "fmt", 0);
+        auto fmts = display->type == NUMBER ? "%f" : "%s";
+        llvm::Value* fmt = env.builder->CreateGlobalStringPtr(fmts, "fmt", 0);
         std::vector<llvm::Value*> args = { fmt, value };
-        builder.CreateCall(printf, args, "printfCall");
+        env.builder->CreateCall(printf, args, "printfCall");
 
         auto zero = llvm::Constant::getNullValue(llvm::Type::getInt64Ty(env.module->getContext()));
-        builder.CreateRet(zero);
+        env.builder->CreateRet(zero);
         llvm::verifyFunction(*f);
         return f;
     }

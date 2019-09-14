@@ -12,21 +12,21 @@ void yyerror(const char* s) { std::cerr << "ERROR: " << s << std::endl; }
 %}
 
 %union {
-    Block *block;
-    Expr *expr;
-    std::string *name;
+    Block* block;
+    Expr* expr;
+    std::string* name;
+    std::string* text;
     double number;
     int token;
 }
 
 %token <name> T_IDENTIFIER
+%token <text> T_TEXT
 %token <number> T_NUMBER 
-%token <token> T_EQUAL T_PLUS
+%token <token> T_EQUAL 
 
 %type <block> program stmts
 %type <expr> stmt expr
-
-%left T_PLUS
 
 %%
 program: /* empty */ {}
@@ -45,7 +45,7 @@ stmt:
 
 expr:
     T_NUMBER           { $$ = new Number(yylineno, $1); }
+    | T_TEXT           { $$ = new String(yylineno, *$1); }
     | T_IDENTIFIER     { $$ = new Ident(yylineno, *$1); }
-    | T_PLUS expr expr { $$ = new Plus(yylineno, $2, $3); }
     ;
 %%
