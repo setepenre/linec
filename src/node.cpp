@@ -24,7 +24,7 @@ llvm::Value* Assignment::codegen(const Environment& env) {
     auto count = Defined.count(name);
     if(count) {
         std::cerr << "\e[1m" << lineno << "\e[0m: " << env.lines.at(lineno - 1) << std::endl;
-        std::cerr << "  identifier \e[1m" << name << "\e[0m is already defined here" << std::endl;
+        std::cerr << "  identifier \e[1m" << name << "\e[0m is already defined" << std::endl;
         return nullptr;
     }
 
