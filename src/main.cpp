@@ -96,6 +96,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "failed to parse " << input << std::endl;
         return parse_code;
     }
+    if(!entry) {
+        return 0;
+    }
 
     auto [lines, ok] = readlines(input);
     if(!ok) {

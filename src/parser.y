@@ -11,7 +11,6 @@ extern int yylineno;
 void yyerror(const char* s) { std::cerr << "ERROR: " << s << std::endl; }
 %}
 
-
 %union {
     Block *block;
     Expr *expr;
@@ -30,8 +29,8 @@ void yyerror(const char* s) { std::cerr << "ERROR: " << s << std::endl; }
 %left T_PLUS
 
 %%
-program: 
-    stmts { entry = $1; }
+program: /* empty */ {}
+    | stmts { entry = $1; }
     ;
 
 stmts: 

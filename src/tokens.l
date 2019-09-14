@@ -14,7 +14,7 @@ integer [0-9]+
 number  [0-9]*\.[0-9]+([eE][-+]?[0-9]+)?
 letters [a-zA-Z]+
 %%
-[ \t\n]            ;
+[ \t\r\n]+         {}
 {integer}|{number} {
                        yylval.number = std::stod(yytext);
                        return T_NUMBER;
