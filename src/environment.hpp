@@ -18,8 +18,8 @@ struct Environment {
     std::unique_ptr<llvm::IRBuilder<>> builder;
 
     Environment(std::string filename, std::vector<std::string> lines): lines(lines) {
-        module = llvm::make_unique<llvm::Module>(filename, context);
-        builder = llvm::make_unique<llvm::IRBuilder<>>(module->getContext());
+        module = std::make_unique<llvm::Module>(filename, context);
+        builder = std::make_unique<llvm::IRBuilder<>>(module->getContext());
     }
 };
 

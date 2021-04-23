@@ -151,7 +151,7 @@ int main(int argc, char* argv[]) {
     }
 
     llvm::legacy::PassManager pass;
-    auto filetype = llvm::TargetMachine::CGFT_ObjectFile;
+    auto filetype = llvm::CGFT_ObjectFile;
 
     if(target_machine->addPassesToEmitFile(pass, dest, nullptr, filetype)) {
         std::cerr << "target_machine can't emit a file of this type" << std::endl;

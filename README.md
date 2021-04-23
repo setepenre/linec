@@ -4,9 +4,9 @@ Toy compiler made using flex, bison and llvm.
 
 ## dependencies
 - flex 2.6.4
-- bison (GNU Bison) 3.3.2
-- LLVM version 8.0.0
-- g++ (Ubuntu 8.3.0-6ubuntu1) 8.3.0
+- bison (GNU Bison) 3.7.6
+- LLVM version 11.1.0
+- g++ 10.2.0
 
 ## setup
 

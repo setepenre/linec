@@ -1,5 +1,5 @@
 CC=g++
-CXXFLAGS=-I/usr/lib/llvm-8/include -std=c++17 -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+CXXFLAGS=-I/usr/include/llvm -std=c++2a -fno-exceptions -D_GNU_SOURCE -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
 
 all: bin/linec bin/example
 
